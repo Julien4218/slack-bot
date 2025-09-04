@@ -1,0 +1,4 @@
+Flask
+slack_sdk
+python-dotenv
+newrelic
