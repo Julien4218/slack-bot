@@ -17,9 +17,9 @@ app = Flask(__name__)
 def health_check():
     return make_response("OK", 200)
 
-@app.route("/close-old", methods=["POST"])
-@newrelic.agent.background_task(name='close_old_channels')
-def close_old_channels():    
+@app.route("/clean-old", methods=["POST"])
+@newrelic.agent.background_task(name='clean_old_channels')
+def clean_old_channels():    
     client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
     verifier = SignatureVerifier(signing_secret=os.getenv("SLACK_SIGNING_SECRET"))
 
@@ -32,7 +32,8 @@ def close_old_channels():
 
     now = time.time()
     one_year_ago = now - 365 * 24 * 60 * 60
-    closed_channels = []
+    archived_channels = []
+    left_channels = []
 
     channels = client.conversations_list(types="public_channel,private_channel").data["channels"]
 
@@ -45,17 +46,32 @@ def close_old_channels():
         ]
 
         if inactive:
-            if not dry_run:
-                client.chat_postMessage(
-                    channel=channel["id"],
-                    text="Closing this thread due to inactivity."
-                )
-            closed_channels.append(channel["name"])
+            # Check if the user is a channel admin
+            members_info = client.conversations_members(channel=channel["id"]).data
+            admins = [
+                member for member in members_info.get("members", [])
+                if client.users_info(user=member).data["user"].get("is_admin", False)
+            ]
+            if user_id in admins:
+                if not dry_run:
+                    client.chat_postMessage(
+                        channel=channel["id"],
+                        text=f"Archiving this channel <#{channel['id']}> due to inactivity."
+                    )
+                    client.conversations_archive(channel=channel["id"])
+                archived_channels.append(channel["name"])
+            else:
+                client.conversations_leave(channel=channel["id"])
+                left_channels.append(channel["name"])
 
     if dry_run:
-        response_text = f"🧪 Dry-run complete. {len(closed_channels)} channels would be closed: {', '.join(closed_channels)}"
+        response_text = f"🧪 Dry-run complete."
+        response_text += f"\n{len(archived_channels)} channels would be archived: {', '.join(archived_channels)}"
+        response_text += f"\nLeft {len(left_channels)} channels would be left: {', '.join(left_channels)}"
     else:
-        response_text = f"✅ Closed {len(closed_channels)} channels: {', '.join(closed_channels)}"
+        response_text = f"✅ Done"
+        response_text += f"\n{len(archived_channels)} archived: {', '.join(archived_channels)}"
+        response_text += f"\nLeft {len(left_channels)} left: {', '.join(left_channels)}"
 
     return make_response(response_text, 200)
     

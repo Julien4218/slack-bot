@@ -18,15 +18,15 @@
 - Enable Slash Commands, Bot Token Scopes, and Event Subscriptions
 
 2. Define the Slash Command
-- Command: /slack close-old-channels
-- Request URL: your server endpoint (e.g., https://yourdomain.com/slack/close-old)
+- Command: /slack clean-old-channels
+- Request URL: your server endpoint (e.g., https://yourdomain.com/slack/clean-old)
 - Method: POST
 - Slack will send a payload like:
 ```json
 {
   "user_id": "U123456",
   "channel_id": "C123456",
-  "command": "/slack close-old-channels",
+  "command": "/slack clean-old-channels",
   "text": ""
 }
 ```
@@ -74,22 +74,22 @@ The bot will start and connect to Slack. Check your terminal for logs and status
 
 ## Usage
 
-### Close Old Channels
+### Clean Old Channels
 
-To close old channels using the bot, type the following command in any Slack channel where the bot is present:
+To clean old channels using the bot, type the following command in any Slack channel where the bot is present:
 
 ```
-/slack close-old-channels
+/slack clean-old-channels
 ```
 
 The bot will process the request and archive channels that meet the criteria for being considered "old." Check the channel or your direct messages for a summary of the action taken.
 
 ### Dry Run Mode
 
-To preview which channels would be closed without making changes, use the dry run option:
+To preview which channels would be clean without making changes, use the dry run option:
 
 ```
-/slack close-old-channels --dry-run
+/slack clean-old-channels --dry-run
 ```
 
 The bot will list channels that match the criteria but will not archive them.
